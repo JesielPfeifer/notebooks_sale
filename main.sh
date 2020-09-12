@@ -2,7 +2,7 @@
 
 carrega_arquivo()
 {
-	arq=`zenity --file-selection --title="Selecione o arquivo base"`
+	arq=`zenity --file-selection --title="Selecione o arquivo base" --file-filter="*.csv"`
 case $? in
 	0) echo "OK";;
 	1) echo "Arquivo nao foi carregado";;
@@ -26,30 +26,49 @@ for((i=0 ; i<$array_size ; i++))
 do
 	date_ymd[$i]=`echo "${dados[$i]}" | cut -f1 -d,`
 	brand[$i]=`echo "${dados[$i]}" | cut -f2 -d,`
-	laptop_name[$i]=`echo "${dados[$i]}" |  cut -f3 -d,`
+	laptop_name[$i]=`echo "${dados[$i]}" | cut -f3 -d, | tr ' ' '_'`
 	display_size[$i]=`echo "${dados[$i]}" | cut -f4 -d,`
-	processor_type[$i]=`echo "${dados[$i]}" | cut -f5 -d,`
-	graphics_card[$i]=`echo "${dados[$i]}" | cut -f6 -d,`
-	disk_space[$i]=`echo "${dados[$i]}" | cut -f7 -d,`
+	processor_type[$i]=`echo "${dados[$i]}" | cut -f5 -d,| tr ' ' '_'`
+	graphics_card[$i]=`echo "${dados[$i]}" | cut -f6 -d, | tr ' ' '_'`
+	disk_space[$i]=`echo "${dados[$i]}" | cut -f7 -d,| tr ' ' '_'`
 	discount_price[$i]=`echo "${dados[$i]}" | cut -f8 -d,`
 	list_price[$i]=`echo "${dados[$i]}" | cut -f9 -d,`
 	rating[$i]=`echo "${dados[$i]}" | cut -f10 -d,`
+        
 done
+
+echo "NOME: " ${laptop_name[3]}	
 
 }
 
-#for i in "${laptop_name[@]}"
 find_laptop_name()
 {	
 	lpname=$(zenity --text "Digite o nome do notebook: " --entry)
-
-for((i=1 ; i<$array_size ; i++))
+table=`for((i=1 ; i<$array_size ; i++))
 do
 if [[ "${laptop_name[$i],,}" == *"${lpname,,}"* ]] 
-then 
-	echo "NAME: " ${laptop_name[$i]} "PRECO: " ${list_price[$i]}
+	then
+	echo -e "${date_ymd[$i]} ${brand[$i]} ${laptop_name[$i]} ${display_size[$i]} ${processor_type[$i]} ${graphics_card[$i]} ${disk_space[$i]} ${discount_price[$i]} ${list_price[$i]} ${rating[$i]}\n"
 fi
-done		
+done`
+
+zenity --list \
+--width=800 \
+--height=900 \
+--print-column='ALL' \
+--separator=$',' \
+--text="Termo pesquisado: $lpname" \
+--column="Data" \
+--column="Marca" \
+--column="Notebook" \
+--column="Tela" \
+--column="CPU" \
+--column="GPU" \
+--column="HD" \
+--column="Desconto" \
+--column="Lista de preco" \
+--column="Avaliacao" \
+$table
 
 }
 
