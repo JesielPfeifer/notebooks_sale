@@ -1,16 +1,15 @@
 #!/bin/bash
-
-carrega_arquivo()
+function carrega_arquivo()
 {
 	arq=`zenity --file-selection --title="Selecione o arquivo base" --file-filter="*.csv"`
 case $? in
-	0) echo "OK";;
-	1) echo "Arquivo nao foi carregado";;
-	-1) echo "Erro ao abrir o arquivo";;
+	0) zenity --info --width=250 --height=100 --text "Arquivo carregado! Navegue pelo menu" --title "Notebook Sales";;
+	1) zenity --error --width=250 --height=100 --text "Arquivo nao carregado, feche o programa no menu e tente novamente" --title "Notebook Sales";;
+	-1) zenity --error --width=250 --height=100 --error "Erro desconhecido" --title "Notebook Sales";;
 esac
 }
 
-carrega_array()
+function carrega_array()
 {	
 	i=0
 	declare -a dados=()
@@ -20,43 +19,72 @@ carrega_array()
 		i=$((i+1))
 	done < "$arq"
 	array_size=${#dados[@]}
-	echo "TAMANHO ARRAY: " $array_size
-			
+	
 for((i=0 ; i<$array_size ; i++))
 do
 	date_ymd[$i]=`echo "${dados[$i]}" | cut -f1 -d,`
 	brand[$i]=`echo "${dados[$i]}" | cut -f2 -d,`
 	laptop_name[$i]=`echo "${dados[$i]}" | cut -f3 -d, | tr ' ' '_'`
 	display_size[$i]=`echo "${dados[$i]}" | cut -f4 -d,`
-	processor_type[$i]=`echo "${dados[$i]}" | cut -f5 -d,| tr ' ' '_'`
+	processor_type[$i]=`echo "${dados[$i]}" | cut -f5 -d, | tr ' ' '_'`
 	graphics_card[$i]=`echo "${dados[$i]}" | cut -f6 -d, | tr ' ' '_'`
-	disk_space[$i]=`echo "${dados[$i]}" | cut -f7 -d,| tr ' ' '_'`
+	disk_space[$i]=`echo "${dados[$i]}" | cut -f7 -d, | tr ' ' '_'`
 	discount_price[$i]=`echo "${dados[$i]}" | cut -f8 -d,`
 	list_price[$i]=`echo "${dados[$i]}" | cut -f9 -d,`
 	rating[$i]=`echo "${dados[$i]}" | cut -f10 -d,`
         
-done
-
-echo "NOME: " ${laptop_name[3]}	
-
+done	
 }
 
-find_laptop_name()
+function find_laptop_name()
 {	
-	lpname=$(zenity --text "Digite o nome do notebook: " --entry)
-table=`for((i=1 ; i<$array_size ; i++))
-do
-if [[ "${laptop_name[$i],,}" == *"${lpname,,}"* ]] 
-	then
-	echo -e "${date_ymd[$i]} ${brand[$i]} ${laptop_name[$i]} ${display_size[$i]} ${processor_type[$i]} ${graphics_card[$i]} ${disk_space[$i]} ${discount_price[$i]} ${list_price[$i]} ${rating[$i]}\n"
-fi
-done`
+	lpname=$(zenity --text 'Digite o nome do notebook: ' --entry) | tr ' ' '_'
+	table=`for((i=1 ; i<$array_size ; i++))
+	do
+		if [[ "${laptop_name[$i],,}" == *"${lpname,,}"* ]] 
+		then
+		echo  "${date_ymd[$i]} ${brand[$i]} ${laptop_name[$i]} ${display_size[$i]} ${processor_type[$i]}  ${graphics_card[$i]} ${disk_space[$i]} ${discount_price[$i]} ${list_price[$i]} ${rating[$i]}" 
+		fi
+
+	done`
 
 zenity --list \
 --width=800 \
 --height=900 \
 --print-column='ALL' \
---separator=$',' \
+--separator=' ' \
+--text="Termo pesquisado: $lpname" \
+--column="Data" \
+--column="Marca" \
+--column="Notebook" \
+--column="Tela" \
+--column="CPU" \
+--column="GPU" \
+--column="HD" \
+--column="Desconto" \
+--column="Preco" \
+--column="Avaliacao" \
+$table
+
+}
+
+function filter_disk_space()
+{
+	diskSpace=$(zenity --text "Digite o tamanho do disk space: " --entry) | tr ' ' '_'
+	table_disk=`for((i=1 ; i<$array_size ; i++))
+	do
+		if [[ "${disk_space[$i],,}" == *"${diskSpace,,}"* ]] 
+		then
+			discount_amount=$(echo "scale=2;${list_price[$i]} - ${discount_price[$i]}" | bc -l)
+			echo ${brand[$i]} ${laptop_name[$i]} ${discount_price[$i]} ${list_price[$i]} $discount_amount
+		fi
+	done`
+
+zenity --list \
+--width=800 \
+--height=900 \
+--print-column='ALL' \
+--separator=' ' \
 --text="Termo pesquisado: $lpname" \
 --column="Data" \
 --column="Marca" \
@@ -68,39 +96,38 @@ zenity --list \
 --column="Desconto" \
 --column="Lista de preco" \
 --column="Avaliacao" \
-$table
+$table_disk
+
 
 }
-filter_disk_space()
-{
-	diskSpace=$(zenity --text "Digite o tamanho do disk space: " --entry)
 
-for((i=1 ; i<$array_size ; i++))
-do
-if [[ "${disk_space[$i]}" == *"${diskSpace}"* ]] 
-then
-	discount_amount=$(echo "scale=2;${list_price[$i]} - ${discount_price[$i]}" | bc -l)
-	echo ${brand[$i]}" - "${laptop_name[$i]}" - "${discount_price[$i]}" - "${list_price[$i]}" - "$discount_amount
-fi
-done
-}
-
-filter_date_brand()
+function filter_date_brand()
 {
 	data=$(zenity --text "Digite a data desejada: " --entry)
 	marca=$(zenity --text "Digite a fabricante desejada: " --entry)
 c=0	
 for((i=1 ; i<$array_size ; i++))
 do
-if [[ "${date_ymd[$i]}" == *"${data}"* && "${brand[$i]}" == *"${marca}"* ]] 
+if [[ "${date_ymd[$i]}" == *"${data}"* && "${brand[$i],,}" == *"${marca,,}"* ]] 
 then
-	aux[$c]=${laptop_name[$i]}' '${display_size[$i]}' '${disk_space[$i]}' '${discount_price[$i]}' '${rating[$i]}
+	aux[$c]="${laptop_name[$i]} ${display_size[$i]} ${disk_space[$i]} ${discount_price[$i]} ${rating[$i]}"
 	let c++
 fi
 done
 
-IFS=$'\n' sorted=($(sort <<<"${aux[*]}")); unset IFS
-printf "%s\n" "${sorted[@]}"
+zenity --list \
+--width=800 \
+--height=900 \
+--print-column='ALL' \
+--separator=' ' \
+--text="Termo pesquisado: $lpname" \
+--column="Notebook" \
+--column="Tela" \
+--column="HD" \
+--column="Desconto" \
+--column="Avaliacao" \
+${aux[@]}
+
 }
 
 count_rating()
@@ -238,9 +265,7 @@ done
 carrega_arquivo
 carrega_array
 
-x=""
-
-while true $x!=""
+while true;
 do
 	echo "MENU"
 	echo "1 - Localizar por laptop_name:"
@@ -248,13 +273,15 @@ do
 	echo "3 - Localizar por date_ymd e brand"
 	echo "4 - Aplicar desconto"
 	echo "5 - Contagem por rating"
-read a
+	echo "6 - Fechar programa"
+read a                           
 case $a in
 	1) find_laptop_name;;
 	2) filter_disk_space;;
 	3) filter_date_brand;;
 	4) echo "teste";;
 	5) count_rating;;
+	6) break;;
 	*) echo "Opcao invalida"
 esac
 done
