@@ -4,8 +4,11 @@ function carrega_arquivo()
 	arq=`zenity --file-selection --title="Selecione o arquivo base" --file-filter="*.csv"`
 case $? in
 	0) zenity --info --width=250 --height=100 --text "Arquivo carregado! Navegue pelo menu" --title "Notebook Sales";;
-	1) zenity --error --width=250 --height=100 --text "Arquivo nao carregado, feche o programa no menu e tente novamente" --title "Notebook Sales";;
-	-1) zenity --error --width=250 --height=100 --error "Erro desconhecido" --title "Notebook Sales";;
+	1) zenity --error --width=250 --height=100 --text "Arquivo nao carregado, execute o programa novamente" --title "Notebook Sales" 
+	 exit;;
+	-1) zenity --error --width=250 --height=100 --error "Erro desconhecido" --title "Notebook Sales" 
+	exit;;
+
 esac
 }
 
@@ -39,15 +42,15 @@ done
 function find_laptop_name()
 {	
 	lpname=$(zenity --text 'Digite o nome do notebook: ' --entry) | tr ' ' '_'
+
 	table=`for((i=1 ; i<$array_size ; i++))
 	do
 		if [[ "${laptop_name[$i],,}" == *"${lpname,,}"* ]] 
 		then
-		echo  "${date_ymd[$i]} ${brand[$i]} ${laptop_name[$i]} ${display_size[$i]} ${processor_type[$i]}  ${graphics_card[$i]} ${disk_space[$i]} ${discount_price[$i]} ${list_price[$i]} ${rating[$i]}" 
+			echo  "${date_ymd[$i]} ${brand[$i]} ${laptop_name[$i]} ${display_size[$i]} ${processor_type[$i]}  ${graphics_card[$i]} ${disk_space[$i]} ${discount_price[$i]} ${list_price[$i]} ${rating[$i]}" 
 		fi
-
-	done`
-
+		done`
+	
 zenity --list \
 --width=800 \
 --height=900 \
@@ -241,7 +244,7 @@ for((i=0 ; i<$d ; i++))
 	do
 		echo "D)"${quatro[$i]}
 	done
-
+/m
 for((i=0 ; i<$e ; i++))
 	do
 		if [[ ${cinco[$i]} != ''  ]]
@@ -331,9 +334,15 @@ opcoes="$(zenity --width=400 --height=300 --list --column "Opcoes" --title="Note
 "Localizar por disk_space" \
 "Localizar por date_ymd e brand" \
 "Aplicar desconto" \
-"Contagem por rating")"
-                      
+"Contagem por rating" \
+"Encerrar programa")"
+
+case $? in
+
+0)
+
 case "$opcoes" in
+
 "Localizar por laptop_name" )
 	exec
 	find_laptop_name
@@ -354,5 +363,12 @@ case "$opcoes" in
 	exec
 	count_rating
 ;;
+"Encerrar programa")
+	 exit;;
+
+esac
+;;
+1)	exit;;
+-1) 	exit;;
 esac
 done
